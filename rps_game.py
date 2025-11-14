@@ -143,18 +143,24 @@ class MABRPSGame:
         return np.argmax(ucb_values)
     
     def update_arm(self, arm, reward, winner):
-        """Update arm statistics with decay"""
+        """
+        Update arm statistics based on this round's performance.
+        
+        Note: This tracks overall statistics (all rounds where this arm was used)
+        for the leaderboard. The MAB selection uses recent rewards (last mab_window rounds)
+        for adaptive strategy selection.
+        """
         self.arm_counts[arm] += 1
         self.total_plays += 1
         
-        # Track in recent rewards list
+        # Track in recent rewards list (for MAB selection - uses last mab_window rounds)
         self.arm_recent_rewards.append((arm, reward, self.total_plays))
         
-        # Keep only recent transactions
+        # Keep only recent transactions (for MAB selection)
         if len(self.arm_recent_rewards) > self.mab_window:
             self.arm_recent_rewards.pop(0)
         
-        # Update win/loss/tie tracking for leaderboard
+        # Update overall win/loss/tie tracking for leaderboard (all rounds where this arm was used)
         if winner == 'ai':
             self.arm_wins[arm] += 1
         elif winner == 'user':
@@ -162,7 +168,7 @@ class MABRPSGame:
         else:
             self.arm_ties[arm] += 1
         
-        # Update average reward
+        # Update overall average reward (all rounds where this arm was used)
         n = self.arm_counts[arm]
         old_value = self.arm_values[arm]
         self.arm_values[arm] = ((n - 1) / n) * old_value + (1 / n) * reward

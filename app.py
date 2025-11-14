@@ -5,6 +5,7 @@ Enhanced with 11 AI strategies (5 simple + 6 advanced)
 
 import streamlit as st
 import numpy as np
+import pandas as pd
 from rps_game import MABRPSGame
 
 # Page config
@@ -113,26 +114,50 @@ with col_left:
 
 with col_right:
     st.subheader("📈 Strategy Leaderboard")
+    st.caption("Shows overall performance across ALL rounds where each strategy was used")
     
-    if st.session_state.game.total_plays > 0:
-        leaderboard = st.session_state.game.get_leaderboard()
-        
-        # Create table
-        st.markdown("| Rank | Strategy | Win % | Wins | Losses | Ties | Avg Reward |")
-        st.markdown("|------|----------|-------|------|--------|------|------------|")
-        
-        for rank, entry in enumerate(leaderboard[:10], 1):  # Top 10
+    leaderboard = st.session_state.game.get_leaderboard()
+    
+    if len(leaderboard) > 0:
+        # Prepare data for dataframe
+        table_data = []
+        for rank, entry in enumerate(leaderboard, 1):
             strategy = st.session_state.game.strategies[entry['arm']]
-            highlight = "**" if entry['arm'] == selected_arm else ""
+            is_current = (selected_arm is not None and entry['arm'] == selected_arm)
             
-            st.markdown(
-                f"| {rank} | {highlight}{strategy.name}{highlight} | "
-                f"{entry['win_pct']:.1f}% | {entry['wins']} | {entry['losses']} | "
-                f"{entry['ties']} | {entry['avg_reward']:.2f} |"
-            )
+            table_data.append({
+                'Rank': rank,
+                'Strategy': f"⭐ {strategy.name}" if is_current else strategy.name,
+                'Win %': f"{entry['win_pct']:.1f}%",
+                'Wins': entry['wins'],
+                'Losses': entry['losses'],
+                'Ties': entry['ties'],
+                'Total': entry['total_games'],
+                'Avg Reward': f"{entry['avg_reward']:.2f}"
+            })
+        
+        df = pd.DataFrame(table_data)
+        
+        # Display table with proper formatting
+        st.dataframe(
+            df,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Rank": st.column_config.NumberColumn("Rank", width="small"),
+                "Strategy": st.column_config.TextColumn("Strategy", width="medium"),
+                "Win %": st.column_config.TextColumn("Win %", width="small"),
+                "Wins": st.column_config.NumberColumn("Wins", width="small"),
+                "Losses": st.column_config.NumberColumn("Losses", width="small"),
+                "Ties": st.column_config.NumberColumn("Ties", width="small"),
+                "Total": st.column_config.NumberColumn("Total", width="small"),
+                "Avg Reward": st.column_config.TextColumn("Avg Reward", width="small")
+            }
+        )
         
         if selected_arm is not None:
-            st.info(f"💡 Current round used: **{st.session_state.game.strategies[selected_arm].name}**")
+            current_strategy = st.session_state.game.strategies[selected_arm]
+            st.info(f"💡 Current round used: **{current_strategy.name}** (marked with ⭐)")
     else:
         st.info("Play some rounds to see the leaderboard!")
 
