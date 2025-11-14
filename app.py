@@ -46,7 +46,7 @@ with move_cols[2]:
 # Process move
 if rock or paper or scissor:
     user_move = 'rock' if rock else ('paper' if paper else 'scissor')
-    ai_move, winner = st.session_state.game.play_round(user_move)
+    ai_move, winner, selected_arm = st.session_state.game.play_round(user_move)
     
     # Display results
     st.divider()
@@ -75,15 +75,30 @@ if rock or paper or scissor:
     
     # Show AI prediction explanation
     with st.expander("🤖 AI Strategy"):
+        strategy_names = ["Random Forest", "Pattern Detection", "UCB Direct"]
+        strategy_name = strategy_names[selected_arm] if selected_arm < len(strategy_names) else "Unknown"
+        
+        st.markdown(f"**Strategy used:** `{strategy_name}` (Arm {selected_arm})")
+        
         if len(st.session_state.game.user_history) > 1:
             # Show what AI predicted (the move it tried to counter)
             predicted_user_move = [k for k, v in st.session_state.game.BEATS.items() if v == ai_move][0]
             st.markdown(f"**AI predicted:** You would play `{predicted_user_move}`")
             st.markdown(f"**AI countered:** By playing `{ai_move}`")
         else:
-            st.markdown(f"**AI move:** `{ai_move}` (random)")
-        if st.session_state.game.fitted:
-            st.success("✓ Pattern recognition active")
+            st.markdown(f"**AI move:** `{ai_move}` (exploring)")
+        
+        # Show MAB stats
+        if st.session_state.game.total_plays > 0:
+            st.markdown("**Strategy Performance:**")
+            for i, name in enumerate(strategy_names):
+                if st.session_state.game.arm_counts[i] > 0:
+                    avg_reward = st.session_state.game.arm_values[i]
+                    count = int(st.session_state.game.arm_counts[i])
+                    st.markdown(f"- {name}: Avg reward = {avg_reward:.2f} ({count} uses)")
+        
+        if st.session_state.game.rf_fitted:
+            st.success("✓ Random Forest pattern recognition active")
         else:
             st.info("Learning your patterns...")
 
