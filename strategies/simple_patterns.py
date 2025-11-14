@@ -7,80 +7,57 @@ from strategies.base_strategy import BaseStrategy
 
 
 class AlwaysRockStrategy(BaseStrategy):
-    """Detects if opponent always plays rock and counters with paper"""
+    """Always predicts opponent will play rock and counters with paper"""
     
     def __init__(self):
         super().__init__(
             name="Always Rock",
-            description="If the opponent consistently plays rock (e.g., 80%+ of the time), this strategy counters with paper. This is effective against opponents who favor a single move.",
-            short_description="Counters opponents who always play rock"
+            description="Always predicts the opponent will play rock and counters with paper. This is a simple strategy that works well against opponents who favor rock.",
+            short_description="Always counters rock with paper"
         )
     
+    def min_history_length(self):
+        return 0  # No history needed - always works
+    
     def predict(self, user_history, ai_history, outcome_history):
-        if len(user_history) < 3:
-            return None
-        
-        # Check if user always or mostly plays rock
-        move_counts = Counter(user_history)
-        total = len(user_history)
-        
-        rock_ratio = move_counts.get('rock', 0) / total
-        
-        # If 80%+ are rock, counter with paper
-        if rock_ratio >= 0.8:
-            return self.BEATS['rock']  # Return 'paper'
-        
-        return None
+        # Simplified: always return paper to counter rock
+        return self.BEATS['rock']  # Return 'paper'
 
 
 class AlwaysPaperStrategy(BaseStrategy):
-    """Detects if opponent always plays paper and counters with scissor"""
+    """Always predicts opponent will play paper and counters with scissor"""
     
     def __init__(self):
         super().__init__(
             name="Always Paper",
-            description="If the opponent consistently plays paper (e.g., 80%+ of the time), this strategy counters with scissor. This detects and exploits single-move patterns.",
-            short_description="Counters opponents who always play paper"
+            description="Always predicts the opponent will play paper and counters with scissor. This is a simple strategy that works well against opponents who favor paper.",
+            short_description="Always counters paper with scissor"
         )
     
+    def min_history_length(self):
+        return 0  # No history needed - always works
+    
     def predict(self, user_history, ai_history, outcome_history):
-        if len(user_history) < 3:
-            return None
-        
-        move_counts = Counter(user_history)
-        total = len(user_history)
-        
-        paper_ratio = move_counts.get('paper', 0) / total
-        
-        if paper_ratio >= 0.8:
-            return self.BEATS['paper']  # Return 'scissor'
-        
-        return None
+        # Simplified: always return scissor to counter paper
+        return self.BEATS['paper']  # Return 'scissor'
 
 
 class AlwaysScissorStrategy(BaseStrategy):
-    """Detects if opponent always plays scissor and counters with rock"""
+    """Always predicts opponent will play scissor and counters with rock"""
     
     def __init__(self):
         super().__init__(
             name="Always Scissor",
-            description="If the opponent consistently plays scissor (e.g., 80%+ of the time), this strategy counters with rock. This identifies repetitive single-move behavior.",
-            short_description="Counters opponents who always play scissor"
+            description="Always predicts the opponent will play scissor and counters with rock. This is a simple strategy that works well against opponents who favor scissor.",
+            short_description="Always counters scissor with rock"
         )
     
+    def min_history_length(self):
+        return 0  # No history needed - always works
+    
     def predict(self, user_history, ai_history, outcome_history):
-        if len(user_history) < 3:
-            return None
-        
-        move_counts = Counter(user_history)
-        total = len(user_history)
-        
-        scissor_ratio = move_counts.get('scissor', 0) / total
-        
-        if scissor_ratio >= 0.8:
-            return self.BEATS['scissor']  # Return 'rock'
-        
-        return None
+        # Simplified: always return rock to counter scissor
+        return self.BEATS['scissor']  # Return 'rock'
 
 
 class CycleStrategy(BaseStrategy):

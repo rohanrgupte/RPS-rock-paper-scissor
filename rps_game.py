@@ -95,37 +95,49 @@ class MABRPSGame:
     def select_arm_ucb(self):
         """Select arm using Upper Confidence Bound with decay for recent transactions"""
         if self.total_plays < self.num_arms:
+            # Exploration phase: try each arm once
             return self.total_plays
         
         # Recalculate values based on recent transactions only
         recent_rewards = self.arm_recent_rewards[-self.mab_window:]
         
-        # Calculate decayed values for each arm
+        # Calculate simple statistics for each arm from recent rewards
         ucb_values = np.zeros(self.num_arms)
-        arm_counts_recent = np.zeros(self.num_arms)
-        arm_values_recent = np.zeros(self.num_arms)
+        arm_recent_reward_sums = defaultdict(float)
+        arm_recent_counts = defaultdict(int)
         
         # Apply decay factor (older in window get less weight)
         decay_factor = 0.95
         for i, (arm, reward, round_num) in enumerate(recent_rewards):
             age = len(recent_rewards) - i - 1
             weight = decay_factor ** age
-            arm_counts_recent[arm] += weight
-            arm_values_recent[arm] += reward * weight
-        
-        # Normalize values
-        for arm in range(self.num_arms):
-            if arm_counts_recent[arm] > 0:
-                arm_values_recent[arm] /= arm_counts_recent[arm]
+            arm_recent_reward_sums[arm] += reward * weight
+            arm_recent_counts[arm] += 1  # Count actual plays, not weighted
         
         # Calculate UCB with recent values
+        # Use actual total plays for exploration bonus, but recent performance for exploitation
         c = np.sqrt(2 * np.log(self.total_plays + 1))
+        
         for arm in range(self.num_arms):
-            if arm_counts_recent[arm] == 0:
+            count = arm_recent_counts.get(arm, 0)
+            
+            if count == 0:
+                # Arm hasn't been tried recently - give it high priority for exploration
                 ucb_values[arm] = float('inf')
             else:
-                ucb_values[arm] = arm_values_recent[arm] + c * np.sqrt(
-                    np.log(self.total_plays + 1) / (arm_counts_recent[arm] + 1)
+                # Calculate average reward with decay
+                total_weight = sum(decay_factor ** (len(recent_rewards) - i - 1) 
+                                 for i, (a, _, _) in enumerate(recent_rewards) if a == arm)
+                
+                if total_weight > 0:
+                    avg_reward = arm_recent_reward_sums[arm] / total_weight
+                else:
+                    avg_reward = 0
+                
+                # UCB formula: average reward + exploration bonus
+                # Use count (not weighted) for exploration term
+                ucb_values[arm] = avg_reward + c * np.sqrt(
+                    np.log(self.total_plays + 1) / (count + 1)
                 )
         
         return np.argmax(ucb_values)
@@ -196,10 +208,11 @@ class MABRPSGame:
         
         if strategy.can_predict(user_hist):
             move = strategy.predict(user_hist, ai_hist, outcome_hist)
-            if move:
+            if move:  # Strategy returned a valid move
                 return move, selected_arm
         
-        # Fallback to random if strategy can't predict
+        # Fallback to random if strategy can't predict (shouldn't happen for simple strategies)
+        # This can happen if advanced strategies don't have enough history
         return random.choice(self.MOVES), selected_arm
     
     def play_round(self, user_move):
