@@ -11,7 +11,6 @@ from rps_game import MABRPSGame
 # Page config
 st.set_page_config(
     page_title="Rock Paper Scissor Dojo",
-    page_icon="🎯",
     layout="wide"
 )
 
@@ -21,7 +20,7 @@ if 'game' not in st.session_state:
 
 # Sidebar for MAB configuration
 with st.sidebar:
-    st.header("⚙️ MAB Configuration")
+    st.header("MAB Configuration")
     st.markdown("**Multi-Armed Bandit Settings**")
     
     # Exploration parameter (c in UCB formula)
@@ -82,7 +81,7 @@ st.divider()
 col_left, col_right = st.columns([1, 1])
 
 with col_left:
-    st.subheader("🎮 Make Your Move")
+    st.subheader("Make Your Move!")
     
     move_cols = st.columns(3)
     with move_cols[0]:
@@ -279,7 +278,22 @@ with st.expander("📚 Learn About All 11 AI Strategies"):
         st.markdown(f"**{i}. {strategy.name}**")
         st.markdown(f"*{strategy.short_description}*")
         st.markdown(strategy.description)
-        if i < len(st.session_state.game.strategies):
+        
+        # Add equations for advanced strategies
+        if strategy.name == "Iocaine Powder":
+            st.markdown("**Mathematical Approach:**")
+            st.latex(r"\text{For } L \in [1,2,3,4,5]: \quad votes[m] = \sum_{i} 0.95^{age_i} \times \frac{L}{5}")
+        elif strategy.name == "Markov Chains":
+            st.markdown("**Mathematical Approach:**")
+            st.latex(r"P(next|history[-O:]) = \frac{\sum weight \times \mathbb{1}[pattern = history[-O:]]}{\sum weight}")
+        elif strategy.name == "Frequency Decay":
+            st.markdown("**Mathematical Approach:**")
+            st.latex(r"freq[m] = \sum_{i} 0.95^{age_i} \times \mathbb{1}[history[i] = m]")
+        elif strategy.name == "Transition Matrix":
+            st.markdown("**Mathematical Approach:**")
+            st.latex(r"P(to|from) = \frac{\sum 0.95^{age} \times \mathbb{1}[(from,to)]}{\sum 0.95^{age}}")
+        
+        if i < len(st.session_state.game.strategies) - 1:
             st.divider()
 
 st.divider()
