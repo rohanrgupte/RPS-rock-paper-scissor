@@ -3,6 +3,7 @@ Streamlit UI for Rock Paper Scissor Game
 """
 
 import streamlit as st
+import numpy as np
 from rps_game import MABRPSGame
 
 # Page config
@@ -21,7 +22,7 @@ st.title("✂️ Rock Paper Scissor")
 st.markdown("**AI-Powered Opponent using Multi-Armed Bandit & Random Forest**")
 
 # Scoreboard
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 with col1:
     st.metric("Your Score", st.session_state.game.user_score)
 with col2:
@@ -29,6 +30,18 @@ with col2:
 with col3:
     total = st.session_state.game.user_score + st.session_state.game.ai_score
     st.metric("Rounds", total)
+with col4:
+    # Show current best strategy (if available)
+    if hasattr(st.session_state.game, 'arm_values') and st.session_state.game.total_plays > 0:
+        strategy_names = ["RF", "Pattern", "UCB"]
+        best_arm = np.argmax(st.session_state.game.arm_values) if np.any(st.session_state.game.arm_counts > 0) else None
+        if best_arm is not None and st.session_state.game.arm_counts[best_arm] > 0:
+            strategy_icons = ["🌲", "🔍", "📊"]
+            st.metric("Best Strategy", f"{strategy_icons[best_arm]} {strategy_names[best_arm]}")
+        else:
+            st.metric("Best Strategy", "Exploring")
+    else:
+        st.metric("Best Strategy", "Exploring")
 
 st.divider()
 
@@ -63,6 +76,13 @@ if rock or paper or scissor:
         emoji = "🪨" if ai_move == "rock" else ("📄" if ai_move == "paper" else "✂️")
         st.markdown(f"## {emoji}")
         st.markdown(f"**{ai_move.title()}**")
+        
+        # Show strategy used prominently
+        strategy_names = ["Random Forest", "Pattern Detection", "UCB Direct"]
+        strategy_icons = ["🌲", "🔍", "📊"]
+        strategy_name = strategy_names[selected_arm] if selected_arm < len(strategy_names) else "Unknown"
+        strategy_icon = strategy_icons[selected_arm] if selected_arm < len(strategy_icons) else "❓"
+        st.caption(f"{strategy_icon} **Strategy:** {strategy_name}")
     
     with result_col3:
         st.markdown("### Result")
@@ -74,11 +94,14 @@ if rock or paper or scissor:
             st.info("🤝 Tie!")
     
     # Show AI prediction explanation
-    with st.expander("🤖 AI Strategy"):
+    with st.expander("🤖 AI Strategy Details"):
         strategy_names = ["Random Forest", "Pattern Detection", "UCB Direct"]
+        strategy_icons = ["🌲", "🔍", "📊"]
         strategy_name = strategy_names[selected_arm] if selected_arm < len(strategy_names) else "Unknown"
+        strategy_icon = strategy_icons[selected_arm] if selected_arm < len(strategy_icons) else "❓"
         
-        st.markdown(f"**Strategy used:** `{strategy_name}` (Arm {selected_arm})")
+        # Highlight current strategy
+        st.markdown(f"### {strategy_icon} **Current Strategy:** {strategy_name} (Arm {selected_arm})")
         
         if len(st.session_state.game.user_history) > 1:
             # Show what AI predicted (the move it tried to counter)
@@ -88,14 +111,37 @@ if rock or paper or scissor:
         else:
             st.markdown(f"**AI move:** `{ai_move}` (exploring)")
         
-        # Show MAB stats
+        st.divider()
+        
+        # Show MAB stats with visual indicators
         if st.session_state.game.total_plays > 0:
-            st.markdown("**Strategy Performance:**")
+            st.markdown("### 📈 Strategy Performance")
             for i, name in enumerate(strategy_names):
+                icon = strategy_icons[i]
                 if st.session_state.game.arm_counts[i] > 0:
                     avg_reward = st.session_state.game.arm_values[i]
                     count = int(st.session_state.game.arm_counts[i])
-                    st.markdown(f"- {name}: Avg reward = {avg_reward:.2f} ({count} uses)")
+                    
+                    # Color code based on performance
+                    if avg_reward > 0:
+                        reward_indicator = "🟢"
+                    elif avg_reward == 0:
+                        reward_indicator = "🟡"
+                    else:
+                        reward_indicator = "🔴"
+                    
+                    # Highlight current strategy
+                    if i == selected_arm:
+                        st.markdown(f"**{icon} {name}** (Current) - {reward_indicator} Avg: {avg_reward:.2f} | Uses: {count}")
+                    else:
+                        st.markdown(f"{icon} {name} - {reward_indicator} Avg: {avg_reward:.2f} | Uses: {count}")
+                else:
+                    if i == selected_arm:
+                        st.markdown(f"**{icon} {name}** (Current) - ⚪ Not used yet")
+                    else:
+                        st.markdown(f"{icon} {name} - ⚪ Not used yet")
+        
+        st.divider()
         
         if st.session_state.game.rf_fitted:
             st.success("✓ Random Forest pattern recognition active")
