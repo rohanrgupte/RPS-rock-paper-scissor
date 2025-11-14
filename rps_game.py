@@ -222,14 +222,100 @@ class MABRPSGame:
         return random.choice(self.MOVES), selected_arm
     
     def play_round(self, user_move):
-        """Play a single round"""
-        # Predict and select AI move
-        ai_move, selected_arm = self.predict_user_move()
+        """
+        Play a single round - evaluates ALL strategies and tracks their hypothetical results
+        All strategies are evaluated every round, but only one is selected for the actual move
+        """
+        # First, evaluate ALL strategies to get their predicted moves
+        user_hist = list(self.user_history)
+        ai_hist = list(self.ai_history)
+        outcome_hist = list(self.outcome_history)
+        
+        strategy_predictions = {}
+        for arm, strategy in enumerate(self.strategies):
+            if strategy.can_predict(user_hist):
+                predicted_move = strategy.predict(user_hist, ai_hist, outcome_hist)
+                if predicted_move:
+                    strategy_predictions[arm] = predicted_move
+        
+        # Select one strategy using MAB (from all strategies that can predict)
+        if not strategy_predictions:
+            # Fallback: no strategy can predict, use random
+            selected_arm = random.randint(0, self.num_arms - 1)
+            ai_move = random.choice(self.MOVES)
+        else:
+            # Use MAB selection, but only from strategies that can predict
+            available_arms = sorted(strategy_predictions.keys())
+            
+            # Track which strategies have been tried (from available ones)
+            tried_arms = set(arm for arm, _, _ in self.arm_recent_rewards if arm in available_arms)
+            
+            if len(tried_arms) < len(available_arms):
+                # Exploration: try each available strategy at least once
+                for arm in available_arms:
+                    if arm not in tried_arms:
+                        selected_arm = arm
+                        break
+            else:
+                # Exploitation: use UCB, but only from available strategies
+                # Calculate UCB for all arms, then pick best available
+                recent_rewards = self.arm_recent_rewards[-self.mab_window:]
+                ucb_values = {}
+                c = np.sqrt(2 * np.log(self.total_plays + 1))
+                decay_factor = 0.95
+                
+                arm_recent_reward_sums = defaultdict(float)
+                arm_recent_counts = defaultdict(int)
+                
+                for i, (arm, reward, round_num) in enumerate(recent_rewards):
+                    age = len(recent_rewards) - i - 1
+                    weight = decay_factor ** age
+                    arm_recent_reward_sums[arm] += reward * weight
+                    arm_recent_counts[arm] += 1
+                
+                for arm in available_arms:
+                    count = arm_recent_counts.get(arm, 0)
+                    if count == 0:
+                        ucb_values[arm] = float('inf')
+                    else:
+                        total_weight = sum(decay_factor ** (len(recent_rewards) - i - 1) 
+                                         for i, (a, _, _) in enumerate(recent_rewards) if a == arm)
+                        avg_reward = arm_recent_reward_sums[arm] / total_weight if total_weight > 0 else 0
+                        ucb_values[arm] = avg_reward + c * np.sqrt(
+                            np.log(self.total_plays + 1) / (count + 1)
+                        )
+                
+                selected_arm = max(ucb_values, key=ucb_values.get) if ucb_values else available_arms[0]
+            
+            ai_move = strategy_predictions[selected_arm]
+        
+        # Play the round with selected strategy
         winner = self.get_winner(user_move, ai_move)
         reward = self.get_reward(winner)
         
-        # Update MAB with reward
+        # Update MAB with reward for selected strategy (actual result)
         self.update_arm(selected_arm, reward, winner)
+        
+        # Evaluate ALL other strategies hypothetically and update their stats
+        for arm, predicted_move in strategy_predictions.items():
+            if arm != selected_arm:  # Don't double-count the selected strategy (already updated above)
+                hypothetical_winner = self.get_winner(user_move, predicted_move)
+                hypothetical_reward = self.get_reward(hypothetical_winner)
+                
+                # Update stats for hypothetical performance (without MAB update)
+                self.arm_counts[arm] += 1
+                if hypothetical_winner == 'ai':
+                    self.arm_wins[arm] += 1
+                elif hypothetical_winner == 'user':
+                    self.arm_losses[arm] += 1
+                else:
+                    self.arm_ties[arm] += 1
+                
+                # Update average reward (for leaderboard display)
+                n = self.arm_counts[arm]
+                old_value = self.arm_values[arm]
+                self.arm_values[arm] = ((n - 1) / n) * old_value + (1 / n) * hypothetical_reward
+                self.arm_rewards[arm] += hypothetical_reward
         
         # Update history
         self.user_history.append(user_move)
