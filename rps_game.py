@@ -30,9 +30,10 @@ class MABRPSGame:
     MOVES = ['rock', 'paper', 'scissor']
     BEATS = {'rock': 'scissor', 'paper': 'rock', 'scissor': 'paper'}
     
-    def __init__(self, history_size=200, mab_window=20):
+    def __init__(self, history_size=200, mab_window=20, exploration_c=1.414):
         self.history_size = history_size
         self.mab_window = mab_window  # Only use recent N transactions for MAB
+        self.exploration_c = exploration_c  # Exploration parameter for UCB (default: sqrt(2) ≈ 1.414)
         self.user_history = deque(maxlen=history_size)
         self.ai_history = deque(maxlen=history_size)
         self.outcome_history = deque(maxlen=history_size)
@@ -116,7 +117,8 @@ class MABRPSGame:
         
         # Calculate UCB with recent values
         # Use actual total plays for exploration bonus, but recent performance for exploitation
-        c = np.sqrt(2 * np.log(self.total_plays + 1))
+        # UCB formula: μ + c√(ln(n)/N) where c is exploration parameter
+        c = self.exploration_c * np.sqrt(np.log(self.total_plays + 1))
         
         for arm in range(self.num_arms):
             count = arm_recent_counts.get(arm, 0)
@@ -261,7 +263,7 @@ class MABRPSGame:
                 # Calculate UCB for all arms, then pick best available
                 recent_rewards = self.arm_recent_rewards[-self.mab_window:]
                 ucb_values = {}
-                c = np.sqrt(2 * np.log(self.total_plays + 1))
+                c = self.exploration_c * np.sqrt(np.log(self.total_plays + 1))
                 decay_factor = 0.95
                 
                 arm_recent_reward_sums = defaultdict(float)

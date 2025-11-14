@@ -10,17 +10,48 @@ from rps_game import MABRPSGame
 
 # Page config
 st.set_page_config(
-    page_title="Rock Paper Scissor",
-    page_icon="✂️",
+    page_title="Rock Paper Scissor Dojo",
+    page_icon="🎯",
     layout="wide"
 )
 
-# Initialize game
+# Initialize game with default exploration_c
 if 'game' not in st.session_state:
-    st.session_state.game = MABRPSGame()
+    st.session_state.game = MABRPSGame(exploration_c=1.414)
+
+# Sidebar for MAB configuration
+with st.sidebar:
+    st.header("⚙️ MAB Configuration")
+    st.markdown("**Multi-Armed Bandit Settings**")
+    
+    # Exploration parameter (c in UCB formula)
+    exploration_c = st.slider(
+        "Exploration Factor (c)",
+        min_value=0.1,
+        max_value=3.0,
+        value=1.414,  # sqrt(2) default
+        step=0.1,
+        help="Controls exploration vs exploitation. Higher = more exploration. UCB formula: μ + c√(ln(n)/N)"
+    )
+    
+    # Update game's exploration parameter
+    if hasattr(st.session_state.game, 'exploration_c'):
+        st.session_state.game.exploration_c = exploration_c
+    else:
+        st.session_state.game.exploration_c = exploration_c
+    
+    st.markdown("---")
+    st.markdown("**Formula:**")
+    st.latex(r"UCB_i = \mu_i + c \sqrt{\frac{\ln(n)}{N_i}}")
+    st.caption("μ = average reward, c = exploration factor, n = total plays, N = arm plays")
+    
+    st.markdown("---")
+    st.markdown("**Current Settings:**")
+    st.caption(f"Exploration Factor: {exploration_c:.3f}")
+    st.caption(f"MAB Window: {st.session_state.game.mab_window} rounds")
 
 # Header
-st.title("✂️ Rock Paper Scissor")
+st.title("Rock Paper Scissor Dojo")
 st.markdown("**AI-Powered Opponent using 11 Strategies (5 Simple + 6 Advanced) with Multi-Armed Bandit**")
 
 # Scoreboard
@@ -174,6 +205,32 @@ if ai_move and selected_arm is not None:
         st.markdown("**Full Explanation:**")
         st.markdown(strategy.description)
         
+        # Add equations for specific strategies
+        if strategy.name == "Iocaine Powder":
+            st.markdown("**Mathematical Approach:**")
+            st.latex(r"\text{For each pattern length } L \in [1,2,3,4,5]:")
+            st.latex(r"votes[move] = \sum_{i} weight_i \times \frac{L}{5}")
+            st.latex(r"weight_i = decay^{age}, \quad decay = 0.95")
+            st.latex(r"predicted = \arg\max(votes)")
+        elif strategy.name == "Markov Chains":
+            st.markdown("**Mathematical Approach:**")
+            st.latex(r"\text{For each order } O \in [1,2,3]:")
+            st.latex(r"P(next|history[-O:]) = \frac{\sum_{i} weight_i \times \mathbb{1}[pattern_i = history[-O:]]}{\sum_{i} weight_i}")
+            st.latex(r"votes[move] = \sum_{O} confidence_O \times O")
+        elif strategy.name == "Frequency Decay":
+            st.markdown("**Mathematical Approach:**")
+            st.latex(r"freq[move] = \sum_{i} decay^{age_i} \times \mathbb{1}[history[i] = move]")
+            st.latex(r"freq[move] = \frac{freq[move]}{\sum_{move} freq[move]}")
+            st.latex(r"predicted = \arg\max(freq)")
+        elif strategy.name == "Random Forest":
+            st.markdown("**Mathematical Approach:**")
+            st.latex(r"X = [last\_6\_moves, frequencies, patterns]")
+            st.latex(r"RF.fit(X, y) \rightarrow predicted = RF.predict(X_{current})")
+        elif strategy.name == "Transition Matrix":
+            st.markdown("**Mathematical Approach:**")
+            st.latex(r"P(to|from) = \frac{\sum_{i} decay^{age_i} \times \mathbb{1}[transition_i = (from, to)]}{\sum_{i} decay^{age_i}}")
+            st.latex(r"predicted = \arg\max(P(\cdot|last\_move))")
+        
         # Show performance stats
         st.divider()
         win_pct = st.session_state.game.get_win_percentage(selected_arm)
@@ -201,6 +258,11 @@ with st.expander("📚 Learn About All 11 AI Strategies"):
     st.markdown("### Strategy Overview")
     st.markdown("The AI uses a Multi-Armed Bandit algorithm to select the best strategy based on recent performance. "
                 "Only the most recent 20 rounds are used for strategy selection with exponential decay.")
+    
+    st.markdown("**UCB Formula:**")
+    st.latex(r"UCB_i = \mu_i + c \sqrt{\frac{\ln(n)}{N_i}}")
+    st.caption("μ = average reward, c = exploration factor (adjustable), n = total plays, N = arm plays")
+    
     st.divider()
     
     # Simple strategies
