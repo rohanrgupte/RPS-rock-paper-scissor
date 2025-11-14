@@ -21,7 +21,8 @@ class AlwaysRockStrategy(BaseStrategy):
     
     def predict(self, user_history, ai_history, outcome_history):
         # Simplified: always return paper to counter rock
-        return self.BEATS['rock']  # Return 'paper'
+        # To beat rock, we need paper (rock is beaten by paper)
+        return self.BEATEN_BY['rock']  # Return 'paper'
 
 
 class AlwaysPaperStrategy(BaseStrategy):
@@ -39,7 +40,8 @@ class AlwaysPaperStrategy(BaseStrategy):
     
     def predict(self, user_history, ai_history, outcome_history):
         # Simplified: always return scissor to counter paper
-        return self.BEATS['paper']  # Return 'scissor'
+        # To beat paper, we need scissor (paper is beaten by scissor)
+        return self.BEATEN_BY['paper']  # Return 'scissor'
 
 
 class AlwaysScissorStrategy(BaseStrategy):
@@ -57,7 +59,8 @@ class AlwaysScissorStrategy(BaseStrategy):
     
     def predict(self, user_history, ai_history, outcome_history):
         # Simplified: always return rock to counter scissor
-        return self.BEATS['scissor']  # Return 'rock'
+        # To beat scissor, we need rock (scissor is beaten by rock)
+        return self.BEATEN_BY['scissor']  # Return 'rock'
 
 
 class CycleStrategy(BaseStrategy):
@@ -98,7 +101,7 @@ class CycleStrategy(BaseStrategy):
                 # Predict next move in cycle
                 position = (start_idx + matches) % 3
                 predicted_move = cycle_pattern[position]
-                return self.BEATS[predicted_move]
+                return self.BEATEN_BY[predicted_move]
         
         return None
 
@@ -142,7 +145,7 @@ class PairPatternStrategy(BaseStrategy):
             if matches >= 1:
                 # Predict next move in pattern
                 predicted_move = pattern[0]  # First move of pattern repeats
-                return self.BEATS[predicted_move]
+                return self.BEATEN_BY[predicted_move]
         
         # Check for simple alternating pairs
         if len(recent) >= 4:
@@ -150,7 +153,7 @@ class PairPatternStrategy(BaseStrategy):
             if recent[-4] == recent[-2] and recent[-3] == recent[-1] and recent[-4] != recent[-3]:
                 # Predict next will be the first of the pair
                 predicted_move = recent[-2]
-                return self.BEATS[predicted_move]
+                return self.BEATEN_BY[predicted_move]
         
         return None
 

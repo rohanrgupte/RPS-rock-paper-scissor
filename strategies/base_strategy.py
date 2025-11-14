@@ -10,7 +10,8 @@ class BaseStrategy(ABC):
     """Base class for all RPS strategies"""
     
     MOVES = ['rock', 'paper', 'scissor']
-    BEATS = {'rock': 'scissor', 'paper': 'rock', 'scissor': 'paper'}
+    BEATS = {'rock': 'scissor', 'paper': 'rock', 'scissor': 'paper'}  # BEATS[x] = what x beats
+    BEATEN_BY = {'rock': 'paper', 'paper': 'scissor', 'scissor': 'rock'}  # BEATEN_BY[x] = what beats x
     MOVES_TO_IDX = {'rock': 0, 'paper': 1, 'scissor': 2}
     
     def __init__(self, name, description, short_description):

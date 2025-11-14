@@ -52,7 +52,7 @@ class IocainePowderStrategy(BaseStrategy):
         
         if sum(votes.values()) > 0:
             predicted_move = max(votes, key=votes.get)
-            return self.BEATS[predicted_move]
+            return self.BEATEN_BY[predicted_move]
         return None
 
 
@@ -102,7 +102,7 @@ class MarkovChainsStrategy(BaseStrategy):
                 votes[move] += confidence * order
             
             predicted_move = max(votes, key=votes.get)
-            return self.BEATS[predicted_move]
+            return self.BEATEN_BY[predicted_move]
         
         return None
 
@@ -131,7 +131,7 @@ class WinStayLoseShiftStrategy(BaseStrategy):
         last_move = history[-1]
         
         if last_outcome == 'user':
-            return self.BEATS[last_move]
+            return self.BEATEN_BY[last_move]
         elif last_outcome == 'ai':
             shift_map = {'rock': 'paper', 'paper': 'scissor', 'scissor': 'rock'}
             predicted = shift_map.get(last_move)
@@ -155,7 +155,7 @@ class WinStayLoseShiftStrategy(BaseStrategy):
                 backward_shift_map = {'paper': 'rock', 'scissor': 'paper', 'rock': 'scissor'}
                 predicted = backward_shift_map.get(last_move)
             
-            return self.BEATS[predicted] if predicted else None
+            return self.BEATEN_BY[predicted] if predicted else None
         
         return None
 
@@ -192,7 +192,7 @@ class FrequencyDecayStrategy(BaseStrategy):
                 freq[move] /= total_weight
             
             predicted = max(freq, key=freq.get)
-            return self.BEATS[predicted]
+            return self.BEATEN_BY[predicted]
         
         return None
 
@@ -306,7 +306,7 @@ class RandomForestStrategy(BaseStrategy):
             predicted_idx = self.rf_model.predict(last_features)[0]
             predicted_move = self.MOVES[predicted_idx]
             
-            return self.BEATS[predicted_move]
+            return self.BEATEN_BY[predicted_move]
         except Exception:
             return None
 
@@ -341,7 +341,7 @@ class TransitionMatrixStrategy(BaseStrategy):
         last_move = history[-1]
         if last_move in transitions and transitions[last_move]:
             predicted = max(transitions[last_move], key=transitions[last_move].get)
-            return self.BEATS[predicted]
+            return self.BEATEN_BY[predicted]
         
         return None
 
